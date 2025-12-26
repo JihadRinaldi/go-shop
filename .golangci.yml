@@ -1,0 +1,29 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    # Core correctness
+    - govet
+    - errcheck
+    - ineffassign
+
+    # Static analysis (bundle)
+    - staticcheck
+
+    # Formatting & style
+    - misspell
+
+    # Code quality
+    - revive
+    - gocritic
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+      - legacy
+
