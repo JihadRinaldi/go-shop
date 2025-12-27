@@ -26,4 +26,9 @@ linters:
       - std-error-handling
       - common-false-positives
       - legacy
+  settings:
+    revive:
+      rules:
+        - name: var-naming
+          disabled: true
 
