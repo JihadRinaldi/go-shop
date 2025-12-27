@@ -1,6 +1,6 @@
 DB_URL=postgresql://postgres:password@localhost:5432/go_shop?sslmode=disable
 
-.PHONY: build run dev lint docker-up docker-down
+.PHONY: build run dev lint docker-up docker-down resetdb new_migration migrateup migratedown migrateup_n migratedown_n
 
 build:
 	go build -o bin/app ./cmd/api
@@ -28,6 +28,8 @@ migrateup:
 
 migratedown:
 	migrate -path db/migrations -database "$(DB_URL)" -verbose down
+
+resetdb: migratedown migrateup
 
 migrateup_n:
 	@read -p "Enter number of migrations: " n; \
