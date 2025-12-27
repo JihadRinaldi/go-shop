@@ -1,4 +1,4 @@
-.PHONY: build run dev lint
+.PHONY: build run dev lint docker-up docker-down
 
 build:
 	go build -o bin/app ./cmd/api
