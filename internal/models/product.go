@@ -7,7 +7,7 @@ import (
 )
 
 type Category struct {
-	ID          int64          `json:"id" gorm:"primaryKey"`
+	ID          uint           `json:"id" gorm:"primaryKey"`
 	Name        string         `json:"name" gorm:"not null"`
 	Description string         `json:"description"`
 	IsActive    bool           `json:"is_active" gorm:"default:true"`
@@ -19,11 +19,11 @@ type Category struct {
 }
 
 type Product struct {
-	ID          int64          `json:"id" gorm:"primaryKey"`
-	CategoryID  int64          `json:"category_id" gorm:"not null"`
+	ID          uint           `json:"id" gorm:"primaryKey"`
+	CategoryID  uint           `json:"category_id" gorm:"not null"`
 	Name        string         `json:"name" gorm:"not null"`
 	Description string         `json:"description"`
-	Price       int64          `json:"price" gorm:"not null"`
+	Price       float64        `json:"price" gorm:"not null"`
 	Stock       int            `json:"stock" gorm:"default:0"`
 	SKU         string         `json:"sku" gorm:"uniqueIndex;not null"`
 	IsActive    bool           `json:"is_active" gorm:"default:true"`
@@ -36,8 +36,8 @@ type Product struct {
 }
 
 type ProductImage struct {
-	ID        int64          `json:"id" gorm:"primaryKey"`
-	ProductID int64          `json:"product_id" gorm:"not null"`
+	ID        uint           `json:"id" gorm:"primaryKey"`
+	ProductID uint           `json:"product_id" gorm:"not null"`
 	URL       string         `json:"url" gorm:"not null"`
 	AltText   string         `json:"alt_text"`
 	IsPrimary bool           `json:"is_primary" gorm:"default:false"`

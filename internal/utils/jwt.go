@@ -15,19 +15,19 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(cfg *config.Config, userID uint, email, role string) (accessToken, refreshToken string, err error) {
+func GenerateToken(cfg *config.JWTConfig, userID uint, email, role string) (accessToken, refreshToken string, err error) {
 	accessClaims := &Claims{
 		UserID: userID,
 		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWT.ExpireIn)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.ExpireIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessToken, err = at.SignedString([]byte(cfg.JWT.SecretKey))
+	accessToken, err = at.SignedString([]byte(cfg.SecretKey))
 	if err != nil {
 		return "", "", err
 	}
@@ -37,13 +37,13 @@ func GenerateToken(cfg *config.Config, userID uint, email, role string) (accessT
 		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.JWT.RefreshTokenExpires)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.RefreshTokenExpires)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshToken, err = rt.SignedString([]byte(cfg.JWT.SecretKey))
+	refreshToken, err = rt.SignedString([]byte(cfg.SecretKey))
 	if err != nil {
 		return "", "", err
 	}
