@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/JihadRinaldi/go-shop/internal/config"
@@ -49,10 +50,11 @@ func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 
 	cart := models.Cart{UserID: user.ID}
 	if err := s.db.Create(&cart).Error; err != nil {
-		return nil, err
+		fmt.Println("Unable to create cart")
 	}
 
 	return s.generateAuthResponse(&user)
+
 }
 
 func (s *AuthService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
@@ -76,7 +78,7 @@ func (s *AuthService) RefreshToken(req *dto.RefreshTokenRequest) (*dto.AuthRespo
 
 	var refreshToken models.RefreshToken
 	if err := s.db.Where("token = ? AND expired_at > ?", req.RefreshToken, time.Now()).First(&refreshToken).Error; err != nil {
-		return nil, errors.New("invalid or expired refresh token")
+		return nil, errors.New("refresh token not found or expired")
 	}
 
 	var user models.User
