@@ -14,7 +14,7 @@ const (
 )
 
 type User struct {
-	ID        int64          `json:"id" gorm:"primaryKey"`
+	ID        uint           `json:"id" gorm:"primaryKey"`
 	Email     string         `json:"email" gorm:"uniqueIndex;not null"`
 	Password  string         `json:"password" gorm:"not null"`
 	FirstName string         `json:"first_name" gorm:"not null"`
@@ -32,8 +32,8 @@ type User struct {
 }
 
 type RefreshToken struct {
-	ID        int64          `json:"id" gorm:"primaryKey"`
-	UserID    int64          `json:"user_id" gorm:"not null"`
+	ID        uint           `json:"id" gorm:"primaryKey"`
+	UserID    uint           `json:"user_id" gorm:"not null"`
 	Token     string         `json:"token" gorm:"uniqueIndex;not null"`
 	CreatedAt time.Time      `json:"created_at"`
 	ExpiredAt time.Time      `json:"expired_at" gorm:"not null"`
