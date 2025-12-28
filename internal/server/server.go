@@ -5,6 +5,7 @@ import (
 
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/handler"
+	"github.com/JihadRinaldi/go-shop/internal/providers"
 	"github.com/JihadRinaldi/go-shop/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -21,13 +22,16 @@ type Server struct {
 }
 
 func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
+	uploadProvider := providers.NewLocalUploadProvider(cfg.Upload.Path)
+
 	authService := services.NewAuthService(db, cfg)
 	userService := services.NewUserService(db, cfg)
 	productService := services.NewProductService(db, cfg)
+	uploadService := services.NewUploadService(uploadProvider)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
-	productHandler := handler.NewProductHandler(productService)
+	productHandler := handler.NewProductHandler(productService, uploadService)
 
 	return &Server{
 		config:         cfg,
@@ -80,7 +84,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 				productRoutes.POST("/", s.adminMiddleware(), s.productHandler.CreateProduct)
 				productRoutes.PUT("/:id", s.adminMiddleware(), s.productHandler.UpdateProduct)
 				productRoutes.DELETE("/:id", s.adminMiddleware(), s.productHandler.DeleteProduct)
-
+				productRoutes.POST("/:id/images", s.adminMiddleware(), s.productHandler.UploadProductImage)
 			}
 		}
 
