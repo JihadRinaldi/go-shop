@@ -37,8 +37,8 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 		}
 
 		ctx.Set("user_id", claims.UserID)
-		ctx.Set("email", claims.Email)
-		ctx.Set("role", claims.Role)
+		ctx.Set("user_email", claims.Email)
+		ctx.Set("user_role", claims.Role)
 
 		ctx.Next()
 	}
@@ -46,8 +46,8 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 
 func (s *Server) adminMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		role, exists := ctx.Get("role")
-		if !exists || role != models.UserRoleAdmin {
+		role, exists := ctx.Get("user_role")
+		if !exists || role != string(models.UserRoleAdmin) {
 			utils.ForbiddenResponse(ctx, "Admin access required")
 			ctx.Abort()
 			return
