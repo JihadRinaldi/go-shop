@@ -12,26 +12,30 @@ import (
 )
 
 type Server struct {
-	config      *config.Config
-	db          *gorm.DB
-	logger      zerolog.Logger
-	authHandler *handler.AuthHandler
-	userHandler *handler.UserHandler
+	config         *config.Config
+	db             *gorm.DB
+	logger         zerolog.Logger
+	authHandler    *handler.AuthHandler
+	userHandler    *handler.UserHandler
+	productHandler *handler.ProductHandler
 }
 
 func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 	authService := services.NewAuthService(db, cfg)
 	userService := services.NewUserService(db, cfg)
+	productService := services.NewProductService(db, cfg)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
+	productHandler := handler.NewProductHandler(productService)
 
 	return &Server{
-		config:      cfg,
-		db:          db,
-		logger:      *logger,
-		authHandler: authHandler,
-		userHandler: userHandler,
+		config:         cfg,
+		db:             db,
+		logger:         *logger,
+		authHandler:    authHandler,
+		userHandler:    userHandler,
+		productHandler: productHandler,
 	}
 }
 
@@ -62,7 +66,27 @@ func (s *Server) SetupRoutes() *gin.Engine {
 				user.GET("/profile", s.userHandler.GetProfile)
 				user.PUT("/profile", s.userHandler.UpdateProfile)
 			}
+
+			categories := protected.Group("/categories")
+			{
+				categories.POST("/", s.adminMiddleware(), s.productHandler.CreateCategory)
+				categories.PUT("/:id", s.adminMiddleware(), s.productHandler.UpdateCategory)
+				categories.DELETE("/:id", s.adminMiddleware(), s.productHandler.DeleteCategory)
+			}
+
+			products := protected.Group("/products")
+			{
+				productRoutes := products
+				productRoutes.POST("/", s.adminMiddleware(), s.productHandler.CreateProduct)
+				productRoutes.PUT("/:id", s.adminMiddleware(), s.productHandler.UpdateProduct)
+				productRoutes.DELETE("/:id", s.adminMiddleware(), s.productHandler.DeleteProduct)
+
+			}
 		}
+
+		api.GET("/categories", s.productHandler.GetCategories)
+		api.GET("/products", s.productHandler.GetProducts)
+		api.GET("/products/:id", s.productHandler.GetProduct)
 	}
 
 	return router
