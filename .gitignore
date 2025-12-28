@@ -15,5 +15,7 @@ bin/
 .idea/
 .DS_Store
 
-
 *log
+__debug*
+
+uploads/
