@@ -20,6 +20,7 @@ type Server struct {
 	authHandler    *handler.AuthHandler
 	userHandler    *handler.UserHandler
 	productHandler *handler.ProductHandler
+	cartHandler    *handler.CartHandler
 }
 
 func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
@@ -34,10 +35,12 @@ func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 	userService := services.NewUserService(db, cfg)
 	productService := services.NewProductService(db, cfg)
 	uploadService := services.NewUploadService(uploadProvider)
+	cartService := services.NewCartService(db, cfg)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	productHandler := handler.NewProductHandler(productService, uploadService)
+	cartHandler := handler.NewCartHandler(cartService)
 
 	return &Server{
 		config:         cfg,
@@ -46,6 +49,7 @@ func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 		authHandler:    authHandler,
 		userHandler:    userHandler,
 		productHandler: productHandler,
+		cartHandler:    cartHandler,
 	}
 }
 
@@ -86,11 +90,19 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 			products := protected.Group("/products")
 			{
-				productRoutes := products
-				productRoutes.POST("/", s.adminMiddleware(), s.productHandler.CreateProduct)
-				productRoutes.PUT("/:id", s.adminMiddleware(), s.productHandler.UpdateProduct)
-				productRoutes.DELETE("/:id", s.adminMiddleware(), s.productHandler.DeleteProduct)
-				productRoutes.POST("/:id/images", s.adminMiddleware(), s.productHandler.UploadProductImage)
+
+				products.POST("/", s.adminMiddleware(), s.productHandler.CreateProduct)
+				products.PUT("/:id", s.adminMiddleware(), s.productHandler.UpdateProduct)
+				products.DELETE("/:id", s.adminMiddleware(), s.productHandler.DeleteProduct)
+				products.POST("/:id/images", s.adminMiddleware(), s.productHandler.UploadProductImage)
+			}
+
+			carts := protected.Group("/carts")
+			{
+				carts.GET("/", s.cartHandler.GetCart)
+				carts.POST("/items", s.cartHandler.AddToCart)
+				carts.PUT("/items/:id", s.cartHandler.UpdateCartItem)
+				carts.DELETE("/items/:id", s.cartHandler.RemoveCartItem)
 			}
 		}
 
