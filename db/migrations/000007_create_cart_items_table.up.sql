@@ -5,8 +5,7 @@ CREATE TABLE cart_items (
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP WITH TIME ZONE,
-    UNIQUE(cart_id, product_id)
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
