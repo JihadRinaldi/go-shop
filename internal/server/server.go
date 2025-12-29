@@ -21,6 +21,7 @@ type Server struct {
 	userHandler    *handler.UserHandler
 	productHandler *handler.ProductHandler
 	cartHandler    *handler.CartHandler
+	orderHandler   *handler.OrderHandler
 }
 
 func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
@@ -36,11 +37,13 @@ func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 	productService := services.NewProductService(db, cfg)
 	uploadService := services.NewUploadService(uploadProvider)
 	cartService := services.NewCartService(db, cfg)
+	orderService := services.NewOrderService(db, cfg)
 
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	productHandler := handler.NewProductHandler(productService, uploadService)
 	cartHandler := handler.NewCartHandler(cartService)
+	orderHandler := handler.NewOrderHandler(orderService)
 
 	return &Server{
 		config:         cfg,
@@ -50,6 +53,7 @@ func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 		userHandler:    userHandler,
 		productHandler: productHandler,
 		cartHandler:    cartHandler,
+		orderHandler:   orderHandler,
 	}
 }
 
@@ -103,6 +107,13 @@ func (s *Server) SetupRoutes() *gin.Engine {
 				carts.POST("/items", s.cartHandler.AddToCart)
 				carts.PUT("/items/:id", s.cartHandler.UpdateCartItem)
 				carts.DELETE("/items/:id", s.cartHandler.RemoveCartItem)
+			}
+
+			orders := protected.Group("/orders")
+			{
+				orders.POST("/", s.orderHandler.CreateOrder)
+				orders.GET("/:id", s.orderHandler.GetOrder)
+				orders.GET("/", s.orderHandler.GetOrders)
 			}
 		}
 
