@@ -1,9 +1,11 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/JihadRinaldi/go-shop/internal/config"
+	"github.com/JihadRinaldi/go-shop/internal/events"
 	"github.com/JihadRinaldi/go-shop/internal/handler"
 	"github.com/JihadRinaldi/go-shop/internal/interfaces"
 	"github.com/JihadRinaldi/go-shop/internal/providers"
@@ -32,7 +34,15 @@ func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 		uploadProvider = providers.NewLocalUploadProvider(cfg.Upload.Path)
 	}
 
-	authService := services.NewAuthService(db, cfg)
+	ctx := context.Background()
+
+	eventPublisher, err := events.NewEventPublisher(ctx, cfg.AWS)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to create event publisher")
+		return nil
+	}
+
+	authService := services.NewAuthService(db, cfg, eventPublisher)
 	userService := services.NewUserService(db, cfg)
 	productService := services.NewProductService(db, cfg)
 	uploadService := services.NewUploadService(uploadProvider)
