@@ -2,7 +2,6 @@ package providers
 
 import (
 	"context"
-	"fmt"
 	"mime/multipart"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -52,7 +51,6 @@ func NewS3Provider(cfg *appConfig.Config) *S3Provider {
 }
 
 func (p *S3Provider) UploadFile(file *multipart.FileHeader, path string) (string, error) {
-	fmt.Println("UPLOAD FROM S3", path)
 	src, err := file.Open()
 	if err != nil {
 		return "", err

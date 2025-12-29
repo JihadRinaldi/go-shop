@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/JihadRinaldi/go-shop/internal/interfaces"
+	"github.com/google/uuid"
 )
 
 type UploadService struct {
@@ -24,7 +25,9 @@ func (s *UploadService) UploadProductImage(productID uint, file *multipart.FileH
 		return "", fmt.Errorf("invalid image extension: %s", ext)
 	}
 
-	path := fmt.Sprintf("products/%d/%s", productID, file.Filename)
+	newFileName := uuid.New().String()
+
+	path := fmt.Sprintf("products/%d/%s%s", productID, newFileName, ext)
 
 	return s.provider.UploadFile(file, path)
 
