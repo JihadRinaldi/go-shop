@@ -88,7 +88,7 @@ func (s *OrderService) CreateOrder(userID uint) (*dto.OrderResponse, error) {
 
 func (s *OrderService) GetOrder(userID uint, orderID uint) (*dto.OrderResponse, error) {
 	var order models.Order
-	err := s.db.Preload("OrderItems").Where("id = ? AND user_id = ? AND deleted_at IS NULL", orderID, userID).First(&order).Error
+	err := s.db.Preload("OrderItems.Product.Images").Preload("OrderItems.Product.Category").Where("id = ? AND user_id = ? AND deleted_at IS NULL", orderID, userID).First(&order).Error
 	if err != nil {
 		return nil, errors.New("order not found")
 	}
