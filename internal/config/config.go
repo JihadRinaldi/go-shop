@@ -45,8 +45,9 @@ type AWSConfig struct {
 }
 
 type UploadConfig struct {
-	Path        string
-	MaxFileSize int64
+	Path           string
+	MaxFileSize    int64
+	UploadProvider string
 }
 
 func Load() (*Config, error) {
@@ -78,12 +79,13 @@ func Load() (*Config, error) {
 			Region:          getEnv("AWS_REGION", "us-east-1"),
 			AccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", "test"),
 			SecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", "test"),
-			S3Bucket:        getEnv("AWS_S3_BUCKET", "ecommerce-uploads"),
+			S3Bucket:        getEnv("AWS_S3_BUCKET", "uploads"),
 			S3Endpoint:      getEnv("AWS_S3_ENDPOINT", "http://localhost:4566"),
 		},
 		Upload: UploadConfig{
-			Path:        getEnv("UPLOAD_PATH", "./uploads"),
-			MaxFileSize: maxUploadSize,
+			Path:           getEnv("UPLOAD_PATH", "./uploads"),
+			MaxFileSize:    maxUploadSize,
+			UploadProvider: getEnv("UPLOAD_PROVIDER", "local"),
 		},
 	}, nil
 

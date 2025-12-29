@@ -5,6 +5,7 @@ import (
 
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/handler"
+	"github.com/JihadRinaldi/go-shop/internal/interfaces"
 	"github.com/JihadRinaldi/go-shop/internal/providers"
 	"github.com/JihadRinaldi/go-shop/internal/services"
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,12 @@ type Server struct {
 }
 
 func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
-	uploadProvider := providers.NewLocalUploadProvider(cfg.Upload.Path)
+	var uploadProvider interfaces.UploadProvider
+	if cfg.Upload.UploadProvider == "s3" {
+		uploadProvider = providers.NewS3Provider(cfg)
+	} else {
+		uploadProvider = providers.NewLocalUploadProvider(cfg.Upload.Path)
+	}
 
 	authService := services.NewAuthService(db, cfg)
 	userService := services.NewUserService(db, cfg)
