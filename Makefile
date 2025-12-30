@@ -3,7 +3,15 @@ DB_URL=postgresql://postgres:password@localhost:5432/go_shop?sslmode=disable
 .PHONY: build run dev lint docker-up docker-down resetdb new_migration migrateup migratedown migrateup_n migratedown_n
 
 build:
-	go build -o bin/app ./cmd/api
+	@echo "Building all binaries...."
+	@mkdir -p bin
+	@for cmd in cmd/*/; do \
+    		if [ -d "$$cmd" ]; then \
+    			binary=$$(basename $$cmd); \
+    			echo "Building $$binary..."; \
+    			go build -o bin/$$binary ./$$cmd; \
+    		fi \
+    	done
 
 run:
 	go run ./cmd/api
