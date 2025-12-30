@@ -4,19 +4,24 @@ import (
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/dto"
 	"github.com/JihadRinaldi/go-shop/internal/models"
+	"github.com/JihadRinaldi/go-shop/internal/repositories"
 	"github.com/JihadRinaldi/go-shop/internal/utils"
 	"gorm.io/gorm"
 )
 
 type ProductService struct {
-	db     *gorm.DB
-	config *config.Config
+	db          *gorm.DB
+	config      *config.Config
+	productRepo repositories.ProductRepositoryInterface
+	uploadRepo  repositories.UploadRepositoryInterface
 }
 
 func NewProductService(db *gorm.DB, config *config.Config) *ProductService {
 	return &ProductService{
-		db:     db,
-		config: config,
+		db:          db,
+		config:      config,
+		productRepo: repositories.NewProductRepository(db),
+		uploadRepo:  repositories.NewUploadRepository(db),
 	}
 }
 
@@ -98,7 +103,7 @@ func (s *ProductService) CreateProduct(req *dto.CreateProductRequest) (*dto.Prod
 		SKU:         req.SKU,
 	}
 
-	if err := s.db.Create(&product).Error; err != nil {
+	if err := s.productRepo.Create(&product); err != nil {
 		return nil, err
 	}
 
@@ -116,16 +121,10 @@ func (s *ProductService) GetProducts(page, limit int) ([]dto.ProductResponse, *u
 
 	offset := (page - 1) * limit
 
-	var products []models.Product
 	var total int64
-
 	s.db.Model(&models.Product{}).Where("is_active = ?", true).Count(&total)
 
-	err := s.db.Preload("Category").Preload("Images").
-		Where("is_active = ?", true).
-		Offset(offset).Limit(limit).
-		Find(&products).Error
-
+	products, err := s.productRepo.GetAll(limit, offset)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,18 +146,18 @@ func (s *ProductService) GetProducts(page, limit int) ([]dto.ProductResponse, *u
 }
 
 func (s *ProductService) GetProduct(id uint) (*dto.ProductResponse, error) {
-	var product models.Product
-	if err := s.db.Preload("Category").Preload("Images").First(&product, id).Error; err != nil {
+	product, err := s.productRepo.GetByID(id)
+	if err != nil {
 		return nil, err
 	}
 
-	response := s.convertToProductResponse(&product)
+	response := s.convertToProductResponse(product)
 	return &response, nil
 }
 
 func (s *ProductService) UpdateProduct(id uint, req *dto.UpdateProductRequest) (*dto.ProductResponse, error) {
-	var product models.Product
-	if err := s.db.First(&product, id).Error; err != nil {
+	product, err := s.productRepo.GetByID(id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -169,7 +168,7 @@ func (s *ProductService) UpdateProduct(id uint, req *dto.UpdateProductRequest) (
 	product.Stock = req.Stock
 	product.IsActive = *req.IsActive
 
-	if err := s.db.Save(&product).Error; err != nil {
+	if err := s.productRepo.Update(product); err != nil {
 		return nil, err
 	}
 
@@ -177,22 +176,21 @@ func (s *ProductService) UpdateProduct(id uint, req *dto.UpdateProductRequest) (
 }
 
 func (s *ProductService) DeleteProduct(id uint) error {
-	return s.db.Delete(&models.Product{}, id).Error
+	return s.productRepo.Delete(id)
 }
 
 func (s *ProductService) AddProductImage(productID uint, url, altText string) error {
-
-	var count int64
-	s.db.Model(&models.ProductImage{}).Where("product_id = ?", productID).Count(&count)
+	images, _ := s.uploadRepo.GetProductImages(productID)
+	isPrimary := len(images) == 0
 
 	image := models.ProductImage{
 		ProductID: productID,
 		URL:       url,
 		AltText:   altText,
-		IsPrimary: count == 0, // First image is primary
+		IsPrimary: isPrimary,
 	}
 
-	return s.db.Create(&image).Error
+	return s.uploadRepo.CreateProductImage(&image)
 }
 
 func (s *ProductService) convertToProductResponse(product *models.Product) dto.ProductResponse {

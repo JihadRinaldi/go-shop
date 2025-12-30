@@ -16,7 +16,6 @@ import (
 )
 
 type AuthService struct {
-	db             *gorm.DB
 	config         *config.Config
 	eventPublisher events.Publisher
 	userRepo       repositories.UserRepositoryInterface
@@ -25,7 +24,6 @@ type AuthService struct {
 
 func NewAuthService(db *gorm.DB, config *config.Config, eventPublisher events.Publisher) *AuthService {
 	return &AuthService{
-		db:             db,
 		config:         config,
 		eventPublisher: eventPublisher,
 		userRepo:       repositories.NewUserRepository(db),

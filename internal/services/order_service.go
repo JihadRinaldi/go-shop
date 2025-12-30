@@ -6,19 +6,26 @@ import (
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/dto"
 	"github.com/JihadRinaldi/go-shop/internal/models"
+	"github.com/JihadRinaldi/go-shop/internal/repositories"
 	"github.com/JihadRinaldi/go-shop/internal/utils"
 	"gorm.io/gorm"
 )
 
 type OrderService struct {
-	db     *gorm.DB
-	config *config.Config
+	db          *gorm.DB
+	config      *config.Config
+	orderRepo   repositories.OrderRepositoryInterface
+	cartRepo    repositories.CartRepositoryInterface
+	productRepo repositories.ProductRepositoryInterface
 }
 
 func NewOrderService(db *gorm.DB, config *config.Config) *OrderService {
 	return &OrderService{
-		db:     db,
-		config: config,
+		db:          db,
+		config:      config,
+		orderRepo:   repositories.NewOrderRepository(db),
+		cartRepo:    repositories.NewCartRepository(db),
+		productRepo: repositories.NewProductRepository(db),
 	}
 }
 
@@ -87,13 +94,16 @@ func (s *OrderService) CreateOrder(userID uint) (*dto.OrderResponse, error) {
 }
 
 func (s *OrderService) GetOrder(userID uint, orderID uint) (*dto.OrderResponse, error) {
-	var order models.Order
-	err := s.db.Preload("OrderItems.Product.Images").Preload("OrderItems.Product.Category").Where("id = ? AND user_id = ? AND deleted_at IS NULL", orderID, userID).First(&order).Error
+	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil {
 		return nil, errors.New("order not found")
 	}
 
-	resp := s.toOrderResponse(&order)
+	if order.UserID != userID {
+		return nil, errors.New("order not found")
+	}
+
+	resp := s.toOrderResponse(order)
 
 	return &resp, nil
 }
@@ -112,23 +122,18 @@ func (s *OrderService) GetOrders(userID uint, page, limit int) ([]dto.OrderRespo
 	}
 
 	offset := (page - 1) * limit
-	var orders []models.Order
 	var total int64
 
 	s.db.Model(&models.Order{}).Where("user_id = ?", userID).Count(&total)
 
-	if err := s.db.Preload("OrderItems.Product.Category").
-		Where("user_id = ?", userID).
-		Order("created_at DESC").
-		Offset(offset).Limit(limit).
-		Find(&orders).Error; err != nil {
+	orders, err := s.orderRepo.GetByUserID(userID, limit, offset)
+	if err != nil {
 		return nil, nil, err
 	}
 
 	response := make([]dto.OrderResponse, len(orders))
 	for i := range orders {
-		order := &orders[i]
-		response[i] = s.toOrderResponse(order)
+		response[i] = s.toOrderResponse(&orders[i])
 	}
 
 	totalPages := int((total + int64(limit) - 1) / int64(limit))

@@ -45,7 +45,7 @@ func New(cfg *config.Config, db *gorm.DB, logger *zerolog.Logger) *Server {
 	authService := services.NewAuthService(db, cfg, eventPublisher)
 	userService := services.NewUserService(db, cfg)
 	productService := services.NewProductService(db, cfg)
-	uploadService := services.NewUploadService(uploadProvider)
+	uploadService := services.NewUploadService(db, uploadProvider)
 	cartService := services.NewCartService(db, cfg)
 	orderService := services.NewOrderService(db, cfg)
 
