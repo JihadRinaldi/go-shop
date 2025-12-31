@@ -1,6 +1,6 @@
 DB_URL=postgresql://postgres:password@localhost:5432/go_shop?sslmode=disable
 
-.PHONY: build run dev lint docker-up docker-down resetdb new_migration migrateup migratedown migrateup_n migratedown_n
+.PHONY: build run dev lint docker-up docker-down resetdb new_migration migrateup migratedown migrateup_n migratedown_n test mocks clean-mocks
 
 build:
 	@echo "Building all binaries...."
@@ -46,3 +46,27 @@ migrateup_n:
 migratedown_n:
 	@read -p "Enter number of migrations: " n; \
 	migrate -path db/migrations -database "$(DB_URL)" -verbose down $$n
+
+# Test targets
+test:
+	@echo "Running tests..."
+	go test -v -cover ./...
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	go test -v -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+# Mock generation targets
+mocks:
+	@echo "Generating mocks..."
+	@mockery
+
+clean-mocks:
+	@echo "Cleaning mocks..."
+	@rm -rf internal/mocks
+	@echo "Mocks cleaned"
+
+regenerate-mocks: clean-mocks mocks
+	@echo "Mocks regenerated successfully"

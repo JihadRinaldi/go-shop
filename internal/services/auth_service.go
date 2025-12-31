@@ -3,33 +3,36 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/dto"
 	"github.com/JihadRinaldi/go-shop/internal/events"
 	"github.com/JihadRinaldi/go-shop/internal/models"
+	"github.com/JihadRinaldi/go-shop/internal/repositories"
 	"github.com/JihadRinaldi/go-shop/internal/utils"
 	"gorm.io/gorm"
 )
 
 type AuthService struct {
-	db             *gorm.DB
 	config         *config.Config
 	eventPublisher events.Publisher
+	userRepo       repositories.UserRepositoryInterface
+	cartRepo       repositories.CartRepositoryInterface
 }
 
 func NewAuthService(db *gorm.DB, config *config.Config, eventPublisher events.Publisher) *AuthService {
 	return &AuthService{
-		db:             db,
 		config:         config,
 		eventPublisher: eventPublisher,
+		userRepo:       repositories.NewUserRepository(db),
+		cartRepo:       repositories.NewCartRepository(db),
 	}
 }
 
 func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, error) {
-	var existingUser models.User
-	if err := s.db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
+	if _, err := s.userRepo.GetByEmail(req.Email); err == nil {
 		return nil, errors.New("email already in use")
 	}
 
@@ -47,12 +50,12 @@ func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 		Role:      models.UserRoleCustomer,
 	}
 
-	if err := s.db.Create(&user).Error; err != nil {
+	if err := s.userRepo.Create(&user); err != nil {
 		return nil, err
 	}
 
 	cart := models.Cart{UserID: user.ID}
-	if err := s.db.Create(&cart).Error; err != nil {
+	if err := s.cartRepo.Create(&cart); err != nil {
 		fmt.Println("Unable to create cart")
 	}
 
@@ -61,8 +64,8 @@ func (s *AuthService) Register(req *dto.RegisterRequest) (*dto.AuthResponse, err
 }
 
 func (s *AuthService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
-	var user models.User
-	if err := s.db.Where("email = ? AND is_active = ?", req.Email, true).First(&user).Error; err != nil {
+	user, err := s.userRepo.GetByEmailAndActive(req.Email, true)
+	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
@@ -70,7 +73,7 @@ func (s *AuthService) Login(req *dto.LoginRequest) (*dto.AuthResponse, error) {
 		return nil, errors.New("invalid credentials")
 	}
 
-	return s.generateAuthResponse(&user)
+	return s.generateAuthResponse(user)
 }
 
 func (s *AuthService) RefreshToken(req *dto.RefreshTokenRequest) (*dto.AuthResponse, error) {
@@ -79,23 +82,27 @@ func (s *AuthService) RefreshToken(req *dto.RefreshTokenRequest) (*dto.AuthRespo
 		return nil, errors.New("invalid refresh token")
 	}
 
-	var refreshToken models.RefreshToken
-	if err := s.db.Where("token = ? AND expired_at > ?", req.RefreshToken, time.Now()).First(&refreshToken).Error; err != nil {
+	// var refreshToken models.RefreshToken
+	refreshToken, err := s.userRepo.GetValidRefreshToken(req.RefreshToken)
+	if err != nil {
 		return nil, errors.New("refresh token not found or expired")
 	}
 
-	var user models.User
-	if err := s.db.First(&user, claims.UserID).Error; err != nil {
+	user, err := s.userRepo.GetByID(claims.UserID)
+	if err != nil {
 		return nil, errors.New("user not found")
 	}
 
-	s.db.Delete(&refreshToken)
+	if err := s.userRepo.DeleteRefreshTokenByID(refreshToken.ID); err != nil {
+		log.Println(err)
+		_ = err
+	}
 
-	return s.generateAuthResponse(&user)
+	return s.generateAuthResponse(user)
 }
 
 func (s *AuthService) Logout(refreshToken string) error {
-	return s.db.Where("token = ?", refreshToken).Delete(&models.RefreshToken{}).Error
+	return s.userRepo.DeleteRefreshToken(refreshToken)
 }
 
 func (s *AuthService) generateAuthResponse(user *models.User) (*dto.AuthResponse, error) {
@@ -115,7 +122,9 @@ func (s *AuthService) generateAuthResponse(user *models.User) (*dto.AuthResponse
 		ExpiredAt: time.Now().Add(s.config.JWT.RefreshTokenExpires),
 	}
 
-	s.db.Create(&refreshTokenModel)
+	if err := s.userRepo.CreateRefreshToken(&refreshTokenModel); err != nil {
+		return nil, err
+	}
 
 	err = s.eventPublisher.Publish("USER_LOGGED_IN", user, nil)
 	if err != nil {

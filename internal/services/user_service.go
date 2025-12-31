@@ -3,25 +3,25 @@ package services
 import (
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/dto"
-	"github.com/JihadRinaldi/go-shop/internal/models"
+	"github.com/JihadRinaldi/go-shop/internal/repositories"
 	"gorm.io/gorm"
 )
 
 type UserService struct {
-	db     *gorm.DB
-	config *config.Config
+	config   *config.Config
+	userRepo repositories.UserRepositoryInterface
 }
 
 func NewUserService(db *gorm.DB, config *config.Config) *UserService {
 	return &UserService{
-		db:     db,
-		config: config,
+		config:   config,
+		userRepo: repositories.NewUserRepository(db),
 	}
 }
 
 func (s *UserService) GetProfile(userID uint) (*dto.UserResponse, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -39,8 +39,8 @@ func (s *UserService) GetProfile(userID uint) (*dto.UserResponse, error) {
 }
 
 func (s *UserService) UpdateProfile(userID uint, req *dto.UpdateProfileRequest) (*dto.UserResponse, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -48,7 +48,7 @@ func (s *UserService) UpdateProfile(userID uint, req *dto.UpdateProfileRequest) 
 	user.LastName = req.LastName
 	user.Phone = req.Phone
 
-	if err := s.db.Save(&user).Error; err != nil {
+	if err := s.userRepo.Update(user); err != nil {
 		return nil, err
 	}
 

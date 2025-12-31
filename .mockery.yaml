@@ -1,0 +1,22 @@
+with-expecter: true
+outpkg: mocks
+packages:
+  github.com/JihadRinaldi/go-shop/internal/repositories:
+    config:
+      dir: internal/mocks
+    interfaces:
+      UserRepositoryInterface:
+      CartRepositoryInterface:
+      ProductRepositoryInterface:
+      OrderRepositoryInterface:
+      UploadRepositoryInterface:
+  github.com/JihadRinaldi/go-shop/internal/interfaces:
+    config:
+      dir: internal/mocks
+    interfaces:
+      UploadProvider:
+  github.com/JihadRinaldi/go-shop/internal/events:
+    config:
+      dir: internal/mocks
+    interfaces:
+      Publisher:

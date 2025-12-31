@@ -6,18 +6,23 @@ import (
 	"github.com/JihadRinaldi/go-shop/internal/config"
 	"github.com/JihadRinaldi/go-shop/internal/dto"
 	"github.com/JihadRinaldi/go-shop/internal/models"
+	"github.com/JihadRinaldi/go-shop/internal/repositories"
 	"gorm.io/gorm"
 )
 
 type CartService struct {
-	db     *gorm.DB
-	config *config.Config
+	db          *gorm.DB
+	config      *config.Config
+	cartRepo    repositories.CartRepositoryInterface
+	productRepo repositories.ProductRepositoryInterface
 }
 
 func NewCartService(db *gorm.DB, config *config.Config) *CartService {
 	return &CartService{
-		db:     db,
-		config: config,
+		db:          db,
+		config:      config,
+		cartRepo:    repositories.NewCartRepository(db),
+		productRepo: repositories.NewProductRepository(db),
 	}
 }
 
@@ -32,8 +37,8 @@ func (s *CartService) GetCart(userID uint) (*dto.CartResponse, error) {
 }
 
 func (s *CartService) AddToCart(userID uint, req dto.AddToCartRequest) (*dto.CartResponse, error) {
-	var product models.Product
-	if err := s.db.First(&product, req.ProductID).Error; err != nil {
+	product, err := s.productRepo.GetByID(req.ProductID)
+	if err != nil {
 		return nil, errors.New("product not found")
 	}
 
@@ -41,12 +46,10 @@ func (s *CartService) AddToCart(userID uint, req dto.AddToCartRequest) (*dto.Car
 		return nil, errors.New("insufficient product stock")
 	}
 
-	// Get or create cart
-	var cart models.Cart
-	err := s.db.Where("user_id = ?", userID).First(&cart).Error
+	cart, err := s.cartRepo.GetByUserID(userID)
 	if err != nil {
-		cart = models.Cart{UserID: userID}
-		if err := s.db.Create(&cart).Error; err != nil {
+		cart = &models.Cart{UserID: userID}
+		if err := s.cartRepo.Create(cart); err != nil {
 			return nil, err
 		}
 	}
@@ -82,8 +85,8 @@ func (s *CartService) UpdateCartItem(userID uint, itemID uint, req dto.UpdateCar
 		return nil, errors.New("cart item not found")
 	}
 
-	var product models.Product
-	if err := s.db.First(&product, cartItem.ProductID).Error; err != nil {
+	product, err := s.productRepo.GetByID(cartItem.ProductID)
+	if err != nil {
 		return nil, errors.New("product not found")
 	}
 
